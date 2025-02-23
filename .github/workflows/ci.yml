@@ -28,7 +28,7 @@ jobs:
         run: forge install
 
       - name: Check gas snapshots
-        run: forge snapshot --check
+        run: forge snapshot --check --via-ir
 
       - name: Run tests
-        run: forge test
+        run: forge test --via-ir
