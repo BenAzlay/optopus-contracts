@@ -175,22 +175,19 @@ contract Optopus is Ownable, ReentrancyGuard, Pausable {
         OptionToken optionToken = optionTokens[asset][isCall];
         optionToken.mint(address(this), totalSupply * 1e18);
 
-        Option memory newOption = Option({
-            owner: msg.sender,
-            tokenId: tokenId,
-            token0: token0,
-            token1: token1,
-            amount0: amount0,
-            amount1: amount1,
-            strikePrice: strikePrice,
-            expiry: expiry,
-            isCall: isCall,
-            totalSupply: totalSupply * 1e18,
-            exercisedAmount: 0,
-            premium: premium
-        });
-
-        options[nextOptionId] = newOption;
+        Option storage newOption = options[nextOptionId];
+        newOption.owner = msg.sender;
+        newOption.tokenId = tokenId;
+        newOption.token0 = token0;
+        newOption.token1 = token1;
+        newOption.amount0 = amount0;
+        newOption.amount1 = amount1;
+        newOption.strikePrice = strikePrice;
+        newOption.expiry = expiry;
+        newOption.isCall = isCall;
+        newOption.totalSupply = totalSupply;
+        newOption.exercisedAmount = 0;
+        newOption.premium = premium;
 
         emit OptionMinted(
             nextOptionId,

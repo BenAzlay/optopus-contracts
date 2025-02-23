@@ -4,3 +4,5 @@ ffi = true
 ast = true
 build_info = true
 extra_output = ["storageLayout"]
+via_ir = true
+optimizer = true
