@@ -31,4 +31,4 @@ jobs:
         run: forge snapshot --check --via-ir
 
       - name: Run tests
-        run: forge test --via-ir
+        run: forge test --via-ir -vvv
