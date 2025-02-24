@@ -10,7 +10,6 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import "./chainlinkInterface.sol";
 
-// Custom Option Token (ERC20)
 contract OptionToken is ERC20 {
     address public immutable optopus;
 
@@ -45,6 +44,7 @@ contract Optopus is Ownable, ReentrancyGuard, Pausable {
     struct Option {
         address owner;
         uint256 tokenId;
+        address asset;
         address token0;
         address token1;
         uint256 amount0;
@@ -167,17 +167,16 @@ contract Optopus is Ownable, ReentrancyGuard, Pausable {
             );
         }
 
-        uint8 assetDecimals = ERC20(asset).decimals();
-        uint256 totalSupply = (asset == token0 ? amount0 : amount1) /
-            (10 ** assetDecimals);
+        uint256 totalSupply = (asset == token0 ? amount0 : amount1);
         require(totalSupply > 0, "No liquidity for asset");
 
         OptionToken optionToken = optionTokens[asset][isCall];
-        optionToken.mint(address(this), totalSupply * 1e18);
+        optionToken.mint(address(this), totalSupply);
 
         Option storage newOption = options[nextOptionId];
         newOption.owner = msg.sender;
         newOption.tokenId = tokenId;
+        newOption.asset = asset;
         newOption.token0 = token0;
         newOption.token1 = token1;
         newOption.amount0 = amount0;
@@ -211,13 +210,10 @@ contract Optopus is Ownable, ReentrancyGuard, Pausable {
             "Insufficient tokens"
         );
 
-        OptionToken optionToken = optionTokens[
-            option.isCall ? option.token0 : option.token1
-        ][option.isCall];
-        address asset = option.isCall ? option.token0 : option.token1;
+        OptionToken optionToken = optionTokens[option.asset][option.isCall];
         uint256 totalCost = (amount * option.premium) / 1e18;
 
-        IERC20(asset).transferFrom(msg.sender, option.owner, totalCost);
+        IERC20(option.asset).transferFrom(msg.sender, option.owner, totalCost);
         optionToken.transfer(msg.sender, amount);
 
         emit OptionPurchased(optionId, msg.sender, amount, totalCost);
@@ -239,22 +235,15 @@ contract Optopus is Ownable, ReentrancyGuard, Pausable {
             "Exceeds total supply"
         );
 
-        OptionToken optionToken = optionTokens[
-            option.isCall ? option.token0 : option.token1
-        ][option.isCall];
+        OptionToken optionToken = optionTokens[option.asset][option.isCall];
         require(
             optionToken.balanceOf(msg.sender) >= amount,
             "Insufficient tokens"
         );
 
         optionToken.burn(msg.sender, amount);
-        address payoutAsset = option.isCall ? option.token1 : option.token0;
-        uint8 assetDecimals = ERC20(
-            option.isCall ? option.token0 : option.token1
-        ).decimals();
-        uint256 marketPrice = getAssetPrice(
-            option.isCall ? option.token0 : option.token1
-        );
+        uint8 assetDecimals = ERC20(option.asset).decimals();
+        uint256 marketPrice = getAssetPrice(option.asset);
         uint256 normalizedMarketPrice = marketPrice * (10 ** (18 - 8));
         uint256 normalizedStrikePrice = option.strikePrice *
             (10 ** (18 - assetDecimals));
@@ -266,12 +255,12 @@ contract Optopus is Ownable, ReentrancyGuard, Pausable {
         uint256 totalProfit = (profitPerUnit * amount) / 1e18;
 
         require(
-            IERC20(payoutAsset).balanceOf(address(this)) >= totalProfit,
+            IERC20(option.asset).balanceOf(address(this)) >= totalProfit,
             "Insufficient funds"
         );
 
         option.exercisedAmount += amount;
-        IERC20(payoutAsset).transfer(msg.sender, totalProfit);
+        IERC20(option.asset).transfer(msg.sender, totalProfit);
 
         if (option.exercisedAmount == option.totalSupply) {
             delete options[optionId];
