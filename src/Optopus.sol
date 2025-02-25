@@ -80,7 +80,7 @@ contract Optopus is Ownable, ReentrancyGuard, Pausable {
     mapping(address => bool) public supportedAssets;
 
     /**
-     * @dev optionTokens[asset][isCall] => OptionToken contract 
+     * @dev optionTokens[asset][isCall] => OptionToken contract
      *      Each (asset, isCall) pair has its own OptionToken ERC20 instance.
      */
     mapping(address => mapping(bool => OptionToken)) public optionTokens;
@@ -130,9 +130,16 @@ contract Optopus is Ownable, ReentrancyGuard, Pausable {
     event OptionMinted(
         uint256 indexed optionId,
         address indexed owner,
-        bool isCall,
+        uint256 tokenId,
+        address token0,
+        address token1,
+        uint256 amount0,
+        uint256 amount1,
         uint256 strikePrice,
-        uint256 expiry
+        uint256 expiry,
+        bool isCall,
+        uint256 totalSupply,
+        uint256 premium
     );
     event OptionPurchased(
         uint256 indexed optionId,
@@ -295,9 +302,16 @@ contract Optopus is Ownable, ReentrancyGuard, Pausable {
         emit OptionMinted(
             nextOptionId,
             msg.sender,
-            isCall,
+            tokenId,
+            token0,
+            token1,
+            amount0,
+            amount1,
             strikePrice,
-            expiry
+            expiry,
+            isCall,
+            totalSupply,
+            premium
         );
 
         // Increment nextOptionId for the next new option
